@@ -47,6 +47,12 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+// Delete key: value pair corresponding to shortURL
+app.post("/urls/:shortURL/delete", (req, res) => {
+  delete urlDatabase[req.params.shortURL];
+  res.redirect("/urls");
+});
+
 app.post("/urls", (req, res) => {
   urlDatabase[shortURL] = req.body;
   res.redirect(`/urls/${shortURL}`);
@@ -61,3 +67,4 @@ let shortURL = function generateRandomString() {
   }
   return result;
 }
+
