@@ -12,6 +12,18 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+
+let shortURL = function generateRandomString() {
+  var result = '';
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for ( var i = 0; i < 6; i++ ) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
+
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -54,17 +66,16 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  urlDatabase[shortURL] = req.body;
-  res.redirect(`/urls/${shortURL}`);
+  let generatedShortURL = shortURL();
+  urlDatabase[generatedShortURL] = req.body.longURL;
+  console.log(req.body.longURL);
+  res.redirect(`/urls/${generatedShortURL}`);
 });
 
-let shortURL = function generateRandomString() {
-  var result = '';
-  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for ( var i = 0; i < 6; i++ ) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
-
+app.post("/urls/:id", (req, res) => {
+  //take the new long URL in the edit bar, and assign it for the same short URL
+  urlDatabase[req.params.id] = req.body.longURL;
+  console.log("params", req.params);
+  console.log("body", req.body);
+  res.redirect("/urls");
+});
