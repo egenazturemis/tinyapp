@@ -9,13 +9,28 @@ app.use(cookieParser());
 
 app.set("view engine", "ejs");
 
+
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+}
 
-let shortURL = function generateRandomString() {
+
+let randomID = function generateRandomString() {
   var result = '';
   var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   var charactersLength = characters.length;
@@ -26,13 +41,12 @@ let shortURL = function generateRandomString() {
 }
 
 
+
+// GET
 app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
-app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
-});
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
@@ -44,7 +58,8 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    // Lookup the user object in the users object using the user_id cookie value
+    user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
   res.render("urls_index", templateVars);
@@ -52,7 +67,7 @@ app.get("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
   };
   res.render("urls_new", templateVars);
 });
@@ -61,7 +76,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const templateVars = { 
     shortURL: req.params.shortURL, 
     longURL: urlDatabase[req.params.shortURL],
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
 });
@@ -71,6 +86,14 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+app.get("/register", (req, res) => {
+  res.render("register");
+})
+
+
+
+
+// POST
 // Delete key: value pair corresponding to shortURL
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
@@ -78,7 +101,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  let generatedShortURL = shortURL();
+  let generatedShortURL = randomID();
   urlDatabase[generatedShortURL] = req.body.longURL;
   res.redirect(`/urls/${generatedShortURL}`);
 });
@@ -98,3 +121,32 @@ app.post("/logout", (req, res) => {
   res.clearCookie('username');
   res.redirect("/urls");
 })
+
+// A helper function to add a user to the database form the register page, and return the userID for that user. 
+// The route that's using this function will populate the usersDatabase variable based on what database we wanna add it in.  
+const addUser = (usersDatabase, email, password) => {
+  const userID = randomID();
+  const newUser = {
+    id: userID,
+    email,
+    password
+  }
+  users[userID] = newUser;
+  return userID;
+}
+
+// Adds a user to the database form the register page, and adds the userID to the cookie.
+// When redirected to the My URLs page, we stay logged in because the user is now added to the users object. 
+app.post("/register", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  const userID = addUser(users, email, password);
+  res.cookie('user_id', userID);
+  res.redirect("urls");
+})
+
+
+
+app.listen(PORT, () => {
+  console.log(`Example app listening on port ${PORT}!`);
+});
