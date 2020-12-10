@@ -90,6 +90,10 @@ app.get("/register", (req, res) => {
   res.render("register");
 })
 
+app.get("/login", (req, res) => {
+  res.render("login");
+})
+
 
 
 
@@ -113,7 +117,7 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
+  res.cookie('user_id', userID);
   res.redirect("/urls");
 })
 
@@ -135,18 +139,49 @@ const addUser = (usersDatabase, email, password) => {
   return userID;
 }
 
+// A helper function to look up email address given an id.
+const doesEmailExist = (email) => {
+  for (let user in users) {
+    if(users[user].email === email) {
+      return true;
+    }
+  }
+  return false;
+};
+
 // Adds a user to the database form the register page, and adds the userID to the cookie.
 // When redirected to the My URLs page, we stay logged in because the user is now added to the users object. 
-app.post("/register", (req, res) => {
+app.post("/register", (req, res) => { 
   const email = req.body.email;
   const password = req.body.password;
-  const userID = addUser(users, email, password);
+  
+  // If the e-mail or password are empty strings, 
+  if (email === '' || password === '') {
+    res.send('400: Email or password missing');
+  }
+
+  if (doesEmailExist(email)) {
+    res.send('400: User already exists');
+  } 
+  
+  let userID = addUser(users, email, password);
+  
+  
+  // Or if email is already in the users object,
+  // send back a response with the 400 status code.
+  
+
+
+  
+
   res.cookie('user_id', userID);
   res.redirect("urls");
 })
 
 
 
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
-});
+}); 
+
