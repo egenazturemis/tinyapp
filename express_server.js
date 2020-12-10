@@ -3,6 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -49,7 +50,7 @@ app.get("/", (req, res) => {
 
 
 app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
+  res.json(users);
 });
 
 app.get("/hello", (req, res) => {
@@ -74,7 +75,7 @@ app.get("/urls", (req, res) => {
     // Users Can Only See Their Own Shortened URLs
     user: users[req.cookies["user_id"]],
     urls: urlsForUser([req.cookies["user_id"]][0]),
-    // userID: urlDatabase[req.cookies["user_id"]].userID
+    // userID: urlDatabase[req.session["user_id"]].userID
   };
 
   res.render("urls_index", templateVars);
@@ -159,7 +160,8 @@ app.post("/login", (req, res) => {
         foundUser = users[user];
       }
     }
-    if (foundUser.password !== password) {
+    // console.log(foundUser);
+    if (!bcrypt.compareSync(password, foundUser.password)) {
       res.send('403: Password is incorrect');
     }
   } 
@@ -201,6 +203,7 @@ const doesEmailExist = (email) => {
 app.post("/register", (req, res) => { 
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   
   // If the e-mail or password are empty strings, 
   if (email === '' || password === '') {
@@ -212,8 +215,9 @@ app.post("/register", (req, res) => {
     res.send('400: User already exists');
   } 
   
-  let userID = addUser(users, email, password);
-
+  let userID = addUser(users, email, hashedPassword);
+  console.log(userID);
+  
   res.cookie('user_id', userID);
   res.redirect("urls");
 })
