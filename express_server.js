@@ -117,12 +117,32 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('user_id', userID);
-  res.redirect("/urls");
+  const email = req.body.email;
+  const password = req.body.password;
+  let foundUser;
+
+  if (!doesEmailExist(email)) {
+    res.send('403: User does not exists');
+  } 
+
+  if (doesEmailExist(email)) {
+    for (let user in users) {
+      if(users[user].email === email) {
+        foundUser = users[user];
+      }
+    }
+    if (foundUser.password !== password) {
+      res.send('403: Password is incorrect');
+    }
+  } 
+
+  
+  res.cookie('user_id', foundUser.id);
+  res.redirect("urls");
 })
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 })
 
@@ -160,19 +180,12 @@ app.post("/register", (req, res) => {
     res.send('400: Email or password missing');
   }
 
+  // Or if email is already in the users object,
   if (doesEmailExist(email)) {
     res.send('400: User already exists');
   } 
   
   let userID = addUser(users, email, password);
-  
-  
-  // Or if email is already in the users object,
-  // send back a response with the 400 status code.
-  
-
-
-  
 
   res.cookie('user_id', userID);
   res.redirect("urls");
