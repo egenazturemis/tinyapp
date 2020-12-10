@@ -12,15 +12,15 @@ app.set("view engine", "ejs");
 
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "userRandomID" }
 };
 
 const users = { 
   "userRandomID": {
     id: "userRandomID", 
     email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
+    password: "hello"
   },
  "user2RandomID": {
     id: "user2RandomID", 
@@ -56,12 +56,27 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+const urlsForUser = (id) => {
+  let userURLs = new Object();
+  for (let url in urlDatabase) {
+    if (urlDatabase[url].userID === id) {
+      userURLs[url] = {longURL: urlDatabase[url].longURL};
+    }
+  }
+  // return urls where the userID is equal to the id of the currently logged-in user.
+  return userURLs;
+}
+
 app.get("/urls", (req, res) => {
+  // if they're logged in, they have to see their own urls. 
   const templateVars = {
     // Lookup the user object in the users object using the user_id cookie value
+    // Users Can Only See Their Own Shortened URLs
     user: users[req.cookies["user_id"]],
-    urls: urlDatabase
+    urls: urlsForUser([req.cookies["user_id"]][0]),
+    // userID: urlDatabase[req.cookies["user_id"]].userID
   };
+
   res.render("urls_index", templateVars);
 });
 
@@ -69,13 +84,19 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]],
   };
+  // If someone is not logged in when trying to access /urls/new, 
+  // redirect them to the login page.
+  if (!req.cookies["user_id"]) {
+    res.redirect("/login");
+    return;
+  }
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = { 
     shortURL: req.params.shortURL, 
-    longURL: urlDatabase[req.params.shortURL],
+    longURL: urlDatabase[req.params.shortURL].longURL,
     user: users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
@@ -94,28 +115,35 @@ app.get("/login", (req, res) => {
   res.render("login");
 })
 
-
+ 
 
 
 // POST
 // Delete key: value pair corresponding to shortURL
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
+  if (req.cookies["user_id"] === urlDatabase[req.params.shortURL].userID) {
+    delete urlDatabase[req.params.shortURL];
+  }
   res.redirect("/urls");
 });
 
 app.post("/urls", (req, res) => {
   let generatedShortURL = randomID();
-  urlDatabase[generatedShortURL] = req.body.longURL;
+  urlDatabase[generatedShortURL] = {longURL: req.body.longURL, userID: req.cookies["user_id"]};
   res.redirect(`/urls/${generatedShortURL}`);
 });
 
 app.post("/urls/:id", (req, res) => {
   //take the new long URL in the edit bar, and assign it for the same short URL
-  urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect("/urls");
+  console.log("user id from database:", urlDatabase[req.params.id].userID);
+  console.log("user id from cookie:", req.cookies["user_id"]);
+  if (req.cookies["user_id"] === urlDatabase[req.params.id].userID) {
+    urlDatabase[req.params.id] = req.body.longURL;
+    res.redirect("/urls");
+  }
+  res.send("Access denied.");
 });
-
+ 
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
@@ -136,7 +164,6 @@ app.post("/login", (req, res) => {
     }
   } 
 
-  
   res.cookie('user_id', foundUser.id);
   res.redirect("urls");
 })
