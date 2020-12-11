@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcrypt');
 const cookieSession = require('cookie-session')
+const { randomID, getURLsForUser, addUser, getUserByEmail } = require('./helpers');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -35,65 +36,6 @@ const users = {
   }
 }
 
-
-
-// HELPER FUNCTIONS
-
-  let randomID = function generateRandomString() {
-    var result = '';
-    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charactersLength = characters.length;
-    for ( var i = 0; i < 6; i++ ) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
-  }
-
-const urlsForUser = (id) => {
-  let userURLs = new Object();
-  for (let url in urlDatabase) {
-    if (urlDatabase[url].userID === id) {
-      userURLs[url] = {longURL: urlDatabase[url].longURL};
-    }
-  }
-  // return urls where the userID is equal to the id of the currently logged-in user.
-  return userURLs;
-}
-
-// A helper function to add a user to the database form the register page, and return the userID for that user. 
-// The route that's using this function will populate the usersDatabase variable based on what database we wanna add it in.  
-const addUser = (usersDatabase, email, password) => {
-  const userID = randomID();
-  const newUser = {
-    id: userID,
-    email,
-    password
-  }
-  users[userID] = newUser;
-  return userID;
-}
-
-// A helper function to look up email address given an id.
-// const doesEmailExist = (email) => {
-//   for (let user in users) {
-//     if(users[user].email === email) {
-//       return true;
-//     }
-//   }
-//   return false;
-// };
-
-const getUserByEmail = function(email, database) {
-  let user;
-  for (let eachUser in database) {
-    if(database[eachUser].email === email) {
-      user = database[eachUser];
-    }
-  }
-  return user;
-};
-
-
 // GET
 app.get("/", (req, res) => {
   res.redirect("/urls");
@@ -102,6 +44,10 @@ app.get("/", (req, res) => {
 
 app.get("/urls.json", (req, res) => {
   res.json(users);
+});
+
+app.get("/db", (req, res) => {
+  res.json(urlDatabase);
 });
 
 app.get("/hello", (req, res) => {
@@ -115,7 +61,7 @@ app.get("/urls", (req, res) => {
     // Lookup the user object in the users object using the user_id cookie value
     // Users Can Only See Their Own Shortened URLs
     user: users[req.session.user_id],
-    urls: urlsForUser([req.session.user_id][0]),
+    urls: getURLsForUser([req.session.user_id][0], urlDatabase),
     // userID: urlDatabase[req.session["user_id"]].userID
   };
 
@@ -177,11 +123,11 @@ app.post("/urls", (req, res) => {
 
 app.post("/urls/:id", (req, res) => {
   //take the new long URL in the edit bar, and assign it for the same short URL
-  if (req.session.user_id === urlDatabase[req.params.id].userID) {
-    urlDatabase[req.params.id] = req.body.longURL;
-    res.redirect("/urls");
-  }
-  res.send("Access denied.");
+  // if (req.session.user_id === urlDatabase[req.params.id].userID) {
+  urlDatabase[req.params.id].longURL = req.body.longURL;
+  // }
+  res.redirect("/urls");
+  // res.send("Access denied.");
 });
  
 app.post("/login", (req, res) => {
