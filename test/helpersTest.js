@@ -17,8 +17,17 @@ const testUsers = {
 
 describe('getUserByEmail', function() {
   it('should return a user with valid email', function() {
-    const user = getUserByEmail("user@example.com", users)
-    const expectedOutput = "userRandomID";
-    // Write your assert statement here
+    const user = getUserByEmail("user@example.com", testUsers)
+    const expectedOutput = {
+      id: "userRandomID", 
+      email: "user@example.com", 
+      password: "purple-monkey-dinosaur"
+    }
+    assert.deepEqual(user, expectedOutput, 'Assertion failed!: getUserByEmail does not return the expected user.');
+  });
+  it('should return undefined if the email does not exist in the database', function() {
+    const user = getUserByEmail("nonexistent@email.com", testUsers)
+    const expectedOutput = undefined;
+    assert.deepEqual(user, expectedOutput, 'Assertion failed!: email address already in database.');
   });
 });
